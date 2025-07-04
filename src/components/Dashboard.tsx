@@ -1,0 +1,239 @@
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
+import { FinancialSummaryCard } from './FinancialSummaryCard';
+import { AccountsList } from './AccountsList';
+import { CreditCardsList } from './CreditCardsList';
+import { TransactionsList } from './TransactionsList';
+import { CategoriesChart } from './CategoriesChart';
+import { MonthlyChart } from './MonthlyChart';
+import OrganizzeAPI from '@/services/organizze';
+import { OrganizzeCredentials, Account, Category, CreditCard, Transaction } from '@/types/organizze';
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  DollarSign, 
+  RefreshCw, 
+  LogOut,
+  BarChart,
+  PieChart,
+  Calendar,
+  Wallet
+} from 'lucide-react';
+
+interface DashboardProps {
+  credentials: OrganizzeCredentials;
+  api: OrganizzeAPI;
+  onLogout: () => void;
+}
+
+export function Dashboard({ credentials, api, onLogout }: DashboardProps) {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      // Get current month period for transactions
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth() - 5, 1); // Last 6 months
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      
+      const startDate = startOfMonth.toISOString().split('T')[0];
+      const endDate = endOfMonth.toISOString().split('T')[0];
+
+      const [accountsData, categoriesData, creditCardsData, transactionsData] = await Promise.all([
+        api.getAccounts(),
+        api.getCategories(),
+        api.getCreditCards(),
+        api.getTransactions({ startDate, endDate })
+      ]);
+
+      setAccounts(accountsData);
+      setCategories(categoriesData);
+      setCreditCards(creditCardsData);
+      setTransactions(transactionsData);
+
+      toast({
+        title: "Dados carregados",
+        description: "Informações financeiras atualizadas com sucesso!",
+      });
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast({
+        title: "Erro ao carregar dados",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Calculate financial summary
+  const totalRevenues = transactions
+    .filter(t => t.amount_cents > 0)
+    .reduce((sum, t) => sum + t.amount_cents, 0);
+
+  const totalExpenses = transactions
+    .filter(t => t.amount_cents < 0)
+    .reduce((sum, t) => sum + Math.abs(t.amount_cents), 0);
+
+  const balance = totalRevenues - totalExpenses;
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-primary rounded-lg shadow-elegant">
+                <TrendingUp className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-foreground">Organizze Insight Hub</h1>
+                <p className="text-sm text-muted-foreground">
+                  Conectado como: {credentials.email}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadData}
+                disabled={isLoading}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Atualizar
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onLogout}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-6">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <RefreshCw className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-muted-foreground">Carregando seus dados financeiros...</p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Financial Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FinancialSummaryCard
+                title="Receitas"
+                value={totalRevenues}
+                icon={TrendingUp}
+                type="revenue"
+              />
+              <FinancialSummaryCard
+                title="Despesas"
+                value={totalExpenses}
+                icon={TrendingDown}
+                type="expense"
+              />
+              <FinancialSummaryCard
+                title="Saldo"
+                value={balance}
+                icon={DollarSign}
+                type="balance"
+              />
+            </div>
+
+            {/* Main Content Tabs */}
+            <Tabs defaultValue="overview" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-5 bg-muted/50">
+                <TabsTrigger value="overview" className="flex items-center gap-2">
+                  <BarChart className="w-4 h-4" />
+                  Visão Geral
+                </TabsTrigger>
+                <TabsTrigger value="accounts" className="flex items-center gap-2">
+                  <Wallet className="w-4 h-4" />
+                  Contas
+                </TabsTrigger>
+                <TabsTrigger value="transactions" className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Movimentações
+                </TabsTrigger>
+                <TabsTrigger value="categories" className="flex items-center gap-2">
+                  <PieChart className="w-4 h-4" />
+                  Categorias
+                </TabsTrigger>
+                <TabsTrigger value="monthly" className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  Mensal
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overview" className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <AccountsList accounts={accounts} />
+                  <CreditCardsList creditCards={creditCards} />
+                </div>
+                <MonthlyChart transactions={transactions} />
+              </TabsContent>
+
+              <TabsContent value="accounts" className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <AccountsList accounts={accounts} />
+                  <CreditCardsList creditCards={creditCards} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="transactions">
+                <TransactionsList 
+                  transactions={transactions}
+                  categories={categories}
+                  accounts={accounts}
+                />
+              </TabsContent>
+
+              <TabsContent value="categories" className="space-y-6">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  <CategoriesChart 
+                    transactions={transactions}
+                    categories={categories}
+                    type="expenses"
+                  />
+                  <CategoriesChart 
+                    transactions={transactions}
+                    categories={categories}
+                    type="revenues"
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="monthly">
+                <MonthlyChart transactions={transactions} />
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
