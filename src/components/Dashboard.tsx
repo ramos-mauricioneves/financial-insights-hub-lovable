@@ -9,6 +9,7 @@ import { TransactionsList } from './TransactionsList';
 import { CategoriesChart } from './CategoriesChart';
 import { MonthlyChart } from './MonthlyChart';
 import OrganizzeAPI from '@/services/organizze';
+import { DemoOrganizzeAPI } from '@/services/demoData';
 import { OrganizzeCredentials, Account, Category, CreditCard, Transaction } from '@/types/organizze';
 import { 
   TrendingUp, 
@@ -24,11 +25,12 @@ import {
 
 interface DashboardProps {
   credentials: OrganizzeCredentials;
-  api: OrganizzeAPI;
+  api: OrganizzeAPI | DemoOrganizzeAPI;
   onLogout: () => void;
+  isDemoMode?: boolean;
 }
 
-export function Dashboard({ credentials, api, onLogout }: DashboardProps) {
+export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: DashboardProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -101,9 +103,15 @@ export function Dashboard({ credentials, api, onLogout }: DashboardProps) {
                 <TrendingUp className="w-6 h-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">Organizze Insight Hub</h1>
+                <h1 className="text-xl font-bold text-foreground">
+                  Organizze Insight Hub {isDemoMode && (
+                    <span className="text-sm bg-warning/20 text-warning px-2 py-1 rounded-md ml-2">
+                      MODO DEMO
+                    </span>
+                  )}
+                </h1>
                 <p className="text-sm text-muted-foreground">
-                  Conectado como: {credentials.email}
+                  {isDemoMode ? 'Dados simulados para demonstração' : `Conectado como: ${credentials.email}`}
                 </p>
               </div>
             </div>

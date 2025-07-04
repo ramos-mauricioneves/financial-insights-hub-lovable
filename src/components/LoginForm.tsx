@@ -8,8 +8,10 @@ import { OrganizzeCredentials } from '@/types/organizze';
 import OrganizzeAPI from '@/services/organizze';
 import { Loader2, Lock, Mail, TrendingUp } from 'lucide-react';
 
+import { DemoOrganizzeAPI } from '@/services/demoData';
+
 interface LoginFormProps {
-  onLogin: (credentials: OrganizzeCredentials, api: OrganizzeAPI) => void;
+  onLogin: (credentials: OrganizzeCredentials, api: OrganizzeAPI | DemoOrganizzeAPI) => void;
 }
 
 export function LoginForm({ onLogin }: LoginFormProps) {
@@ -35,7 +37,20 @@ export function LoginForm({ onLogin }: LoginFormProps) {
         setError('Falha na autenticação. Verifique suas credenciais.');
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Erro desconhecido');
+      console.error('Login error details:', error);
+      
+      // Check if it's a CORS/network error
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch') || 
+            error.message.includes('CORS') ||
+            error.message.includes('Network')) {
+          setError('Erro de CORS: O navegador está bloqueando a requisição. Veja as instruções de solução.');
+        } else {
+          setError(`Erro: ${error.message}`);
+        }
+      } else {
+        setError('Erro de conexão. Verifique se você tem acesso à internet e suas credenciais estão corretas.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -103,26 +118,59 @@ export function LoginForm({ onLogin }: LoginFormProps) {
 
             {error && (
               <Alert className="border-destructive/50 bg-destructive-light">
-                <AlertDescription className="text-destructive">{error}</AlertDescription>
+                <AlertDescription className="text-destructive">
+                  {error}
+                  {error.includes('CORS') && (
+                    <div className="mt-2 text-xs">
+                      <strong>Soluções:</strong>
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        <li>
+                          Instale extensão CORS:{' '}
+                          <a 
+                            href="https://chrome.google.com/webstore/detail/cors-unblock/lfhmikememgdcahcdlaciloancbhjino" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="underline hover:text-primary"
+                          >
+                            CORS Unblock
+                          </a>
+                        </li>
+                        <li>Ou use o modo demo com dados simulados</li>
+                      </ul>
+                    </div>
+                  )}
+                </AlertDescription>
               </Alert>
             )}
 
-            <Button
-              type="submit"
-              className="w-full"
-              variant="default"
-              size="lg"
-              disabled={isLoading || !credentials.email || !credentials.token}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Conectando...
-                </>
-              ) : (
-                'Conectar ao Organizze'
-              )}
-            </Button>
+            <div className="space-y-2">
+              <Button
+                type="submit"
+                className="w-full"
+                variant="default"
+                size="lg"
+                disabled={isLoading || !credentials.email || !credentials.token}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Conectando...
+                  </>
+                ) : (
+                  'Conectar ao Organizze'
+                )}
+              </Button>
+              
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="w-full"
+                onClick={() => onLogin({ email: 'demo', token: 'demo' }, new DemoOrganizzeAPI())}
+              >
+                Ver Demo com Dados Simulados
+              </Button>
+            </div>
           </form>
         </Card>
 
