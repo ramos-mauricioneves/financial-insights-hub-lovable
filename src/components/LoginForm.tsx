@@ -38,18 +38,22 @@ export function LoginForm({ onLogin }: LoginFormProps) {
       }
     } catch (error) {
       console.error('Login error details:', error);
+      console.error('Error type:', typeof error);
+      console.error('Error constructor:', error?.constructor?.name);
       
       // Check if it's a CORS/network error
       if (error instanceof Error) {
+        console.error('Error message:', error.message);
         if (error.message.includes('Failed to fetch') || 
             error.message.includes('CORS') ||
-            error.message.includes('Network')) {
+            error.message.includes('NetworkError') ||
+            error.name === 'TypeError') {
           setError('Erro de CORS: O navegador está bloqueando a requisição. Veja as instruções de solução.');
         } else {
           setError(`Erro: ${error.message}`);
         }
       } else {
-        setError('Erro de conexão. Verifique se você tem acesso à internet e suas credenciais estão corretas.');
+        setError('Erro de conexão (CORS). Instale uma extensão CORS ou use o modo demo.');
       }
     } finally {
       setIsLoading(false);
