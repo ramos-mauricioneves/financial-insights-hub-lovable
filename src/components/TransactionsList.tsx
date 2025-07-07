@@ -18,6 +18,7 @@ export function TransactionsList({
   accounts, 
   onTransactionSelect 
 }: TransactionsListProps) {
+  console.log('TransactionsList received:', { transactions, categories, accounts });
   const [filter, setFilter] = useState<'all' | 'revenues' | 'expenses'>('all');
 
   const formatCurrency = (amount: number) => {
