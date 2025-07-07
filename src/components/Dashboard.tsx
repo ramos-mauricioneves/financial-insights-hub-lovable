@@ -82,11 +82,11 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
   }, []);
 
   // Calculate financial summary
-  const totalRevenues = transactions
+  const totalRevenues = (transactions || [])
     .filter(t => t.amount_cents > 0)
     .reduce((sum, t) => sum + t.amount_cents, 0);
 
-  const totalExpenses = transactions
+  const totalExpenses = (transactions || [])
     .filter(t => t.amount_cents < 0)
     .reduce((sum, t) => sum + Math.abs(t.amount_cents), 0);
 

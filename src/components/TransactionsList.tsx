@@ -46,17 +46,17 @@ export function TransactionsList({
     return transaction.amount_cents > 0;
   };
 
-  const filteredTransactions = transactions.filter(transaction => {
+  const filteredTransactions = (transactions || []).filter(transaction => {
     if (filter === 'revenues') return isRevenue(transaction);
     if (filter === 'expenses') return !isRevenue(transaction);
     return true;
   });
 
-  const totalRevenues = transactions
+  const totalRevenues = (transactions || [])
     .filter(t => isRevenue(t))
     .reduce((sum, t) => sum + t.amount_cents, 0);
 
-  const totalExpenses = transactions
+  const totalExpenses = (transactions || [])
     .filter(t => !isRevenue(t))
     .reduce((sum, t) => sum + Math.abs(t.amount_cents), 0);
 
