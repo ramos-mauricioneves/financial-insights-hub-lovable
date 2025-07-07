@@ -18,12 +18,12 @@ export function CategoriesChart({ transactions, categories, type }: CategoriesCh
   };
 
   // Filter transactions by type (expenses are negative, revenues are positive)
-  const filteredTransactions = transactions.filter(transaction => 
+  const filteredTransactions = (transactions || []).filter(transaction => 
     type === 'expenses' ? transaction.amount_cents < 0 : transaction.amount_cents > 0
   );
 
   // Group transactions by category
-  const categoryData = categories.reduce((acc, category) => {
+  const categoryData = (categories || []).reduce((acc, category) => {
     const categoryTransactions = filteredTransactions.filter(t => t.category_id === category.id);
     const totalAmount = categoryTransactions.reduce((sum, t) => sum + Math.abs(t.amount_cents), 0);
     

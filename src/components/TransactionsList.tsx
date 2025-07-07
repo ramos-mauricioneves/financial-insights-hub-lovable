@@ -67,7 +67,7 @@ export function TransactionsList({
         <h3 className="text-lg font-semibold text-foreground">Movimentações</h3>
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="bg-muted text-muted-foreground">
-            {transactions.length} movimentação{transactions.length !== 1 ? 'ões' : ''}
+            {(transactions || []).length} movimentação{(transactions || []).length !== 1 ? 'ões' : ''}
           </Badge>
         </div>
       </div>
