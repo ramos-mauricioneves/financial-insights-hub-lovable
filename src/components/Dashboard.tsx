@@ -8,6 +8,7 @@ import { CreditCardsList } from './CreditCardsList';
 import { TransactionsList } from './TransactionsList';
 import { CategoriesChart } from './CategoriesChart';
 import { MonthlyChart } from './MonthlyChart';
+import { DateRangeFilter } from './DateRangeFilter';
 import OrganizzeAPI from '@/services/organizze';
 import { DemoOrganizzeAPI } from '@/services/demoData';
 import { OrganizzeCredentials, Account, Category, CreditCard, Transaction } from '@/types/organizze';
@@ -37,23 +38,23 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
   const [categories, setCategories] = useState<Category[]>([]);
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  
+  // Date range state - initialize with current month
+  const now = new Date();
+  const [startDate, setStartDate] = useState(new Date(now.getFullYear(), now.getMonth(), 1));
+  const [endDate, setEndDate] = useState(new Date(now.getFullYear(), now.getMonth() + 1, 0));
 
   const loadData = async () => {
     setIsLoading(true);
     try {
-      // Get current month period for transactions
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth() - 5, 1); // Last 6 months
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      
-      const startDate = startOfMonth.toISOString().split('T')[0];
-      const endDate = endOfMonth.toISOString().split('T')[0];
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
 
       const [accountsData, categoriesData, creditCardsData, transactionsData] = await Promise.all([
         api.getAccounts(),
         api.getCategories(),
         api.getCreditCards(),
-        api.getTransactions({ startDate, endDate })
+        api.getTransactions({ startDate: startDateStr, endDate: endDateStr })
       ]);
 
       setAccounts(accountsData);
@@ -79,19 +80,53 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [startDate, endDate]);
+
+  const handleDateRangeChange = (newStartDate: Date, newEndDate: Date) => {
+    setStartDate(newStartDate);
+    setEndDate(newEndDate);
+  };
+
+  // Filter transactions to only include those from active accounts/cards in the period
+  const getFilteredTransactions = () => {
+    return safeTransactions.filter(transaction => {
+      const transactionDate = new Date(transaction.date);
+      
+      // Check if transaction is within date range
+      if (transactionDate < startDate || transactionDate > endDate) {
+        return false;
+      }
+      
+      // Check if account/card was active when transaction occurred
+      if (transaction.account_id) {
+        const account = accounts.find(a => a.id === transaction.account_id);
+        if (account?.archived) {
+          const archivedDate = new Date(account.updated_at);
+          if (transactionDate >= archivedDate) return false;
+        }
+      }
+      
+      if (transaction.credit_card_id) {
+        const card = creditCards.find(c => c.id === transaction.credit_card_id);
+        if (card?.archived) {
+          const archivedDate = new Date(card.updated_at);
+          if (transactionDate >= archivedDate) return false;
+        }
+      }
+      
+      return true;
+    });
+  };
 
   // Calculate financial summary
-  console.log('Dashboard - transactions type:', typeof transactions, 'is array:', Array.isArray(transactions), 'value:', transactions);
-  
   const safeTransactions = Array.isArray(transactions) ? transactions : [];
-  console.log('Dashboard - safeTransactions length:', safeTransactions.length);
+  const filteredTransactions = getFilteredTransactions();
   
-  const totalRevenues = safeTransactions
+  const totalRevenues = filteredTransactions
     .filter(t => t && t.amount_cents > 0)
     .reduce((sum, t) => sum + t.amount_cents, 0);
 
-  const totalExpenses = safeTransactions
+  const totalExpenses = filteredTransactions
     .filter(t => t && t.amount_cents < 0)
     .reduce((sum, t) => sum + Math.abs(t.amount_cents), 0);
 
@@ -155,6 +190,13 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Date Range Filter */}
+            <DateRangeFilter
+              startDate={startDate}
+              endDate={endDate}
+              onDateRangeChange={handleDateRangeChange}
+            />
+
             {/* Financial Summary */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FinancialSummaryCard
@@ -204,22 +246,34 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
 
               <TabsContent value="overview" className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <AccountsList accounts={accounts} />
-                  <CreditCardsList creditCards={creditCards} />
+                  <AccountsList 
+                    accounts={accounts} 
+                    selectedPeriod={{ startDate, endDate }}
+                  />
+                  <CreditCardsList 
+                    creditCards={creditCards} 
+                    selectedPeriod={{ startDate, endDate }}
+                  />
                 </div>
-                <MonthlyChart transactions={transactions} />
+                <MonthlyChart transactions={filteredTransactions} />
               </TabsContent>
 
               <TabsContent value="accounts" className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <AccountsList accounts={accounts} />
-                  <CreditCardsList creditCards={creditCards} />
+                  <AccountsList 
+                    accounts={accounts} 
+                    selectedPeriod={{ startDate, endDate }}
+                  />
+                  <CreditCardsList 
+                    creditCards={creditCards} 
+                    selectedPeriod={{ startDate, endDate }}
+                  />
                 </div>
               </TabsContent>
 
               <TabsContent value="transactions">
                 <TransactionsList 
-                  transactions={transactions}
+                  transactions={filteredTransactions}
                   categories={categories}
                   accounts={accounts}
                 />
@@ -228,12 +282,12 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
               <TabsContent value="categories" className="space-y-6">
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                   <CategoriesChart 
-                    transactions={transactions}
+                    transactions={filteredTransactions}
                     categories={categories}
                     type="expenses"
                   />
                   <CategoriesChart 
-                    transactions={transactions}
+                    transactions={filteredTransactions}
                     categories={categories}
                     type="revenues"
                   />
@@ -241,7 +295,7 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
               </TabsContent>
 
               <TabsContent value="monthly">
-                <MonthlyChart transactions={transactions} />
+                <MonthlyChart transactions={filteredTransactions} />
               </TabsContent>
             </Tabs>
           </div>
