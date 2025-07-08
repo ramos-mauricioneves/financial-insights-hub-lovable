@@ -82,12 +82,17 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
   }, []);
 
   // Calculate financial summary
-  const totalRevenues = (transactions || [])
-    .filter(t => t.amount_cents > 0)
+  console.log('Dashboard - transactions type:', typeof transactions, 'is array:', Array.isArray(transactions), 'value:', transactions);
+  
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  console.log('Dashboard - safeTransactions length:', safeTransactions.length);
+  
+  const totalRevenues = safeTransactions
+    .filter(t => t && t.amount_cents > 0)
     .reduce((sum, t) => sum + t.amount_cents, 0);
 
-  const totalExpenses = (transactions || [])
-    .filter(t => t.amount_cents < 0)
+  const totalExpenses = safeTransactions
+    .filter(t => t && t.amount_cents < 0)
     .reduce((sum, t) => sum + Math.abs(t.amount_cents), 0);
 
   const balance = totalRevenues - totalExpenses;
