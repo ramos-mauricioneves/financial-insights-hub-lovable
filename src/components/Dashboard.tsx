@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -44,11 +45,15 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
   const [startDate, setStartDate] = useState(new Date(now.getFullYear(), now.getMonth(), 1));
   const [endDate, setEndDate] = useState(new Date(now.getFullYear(), now.getMonth() + 1, 0));
 
+  console.log('Dashboard state:', { accounts, categories, creditCards, transactions });
+
   const loadData = async () => {
     setIsLoading(true);
     try {
       const startDateStr = startDate.toISOString().split('T')[0];
       const endDateStr = endDate.toISOString().split('T')[0];
+
+      console.log('Loading data for period:', { startDateStr, endDateStr });
 
       const [accountsData, categoriesData, creditCardsData, transactionsData] = await Promise.all([
         api.getAccounts(),
@@ -57,10 +62,12 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
         api.getTransactions({ startDate: startDateStr, endDate: endDateStr })
       ]);
 
-      setAccounts(accountsData);
-      setCategories(categoriesData);
-      setCreditCards(creditCardsData);
-      setTransactions(transactionsData);
+      console.log('Data loaded:', { accountsData, categoriesData, creditCardsData, transactionsData });
+
+      setAccounts(Array.isArray(accountsData) ? accountsData : []);
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+      setCreditCards(Array.isArray(creditCardsData) ? creditCardsData : []);
+      setTransactions(Array.isArray(transactionsData) ? transactionsData : []);
 
       toast({
         title: "Dados carregados",
@@ -89,6 +96,8 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
 
   // Filter transactions to only include those from active accounts/cards in the period
   const getFilteredTransactions = () => {
+    const safeTransactions = Array.isArray(transactions) ? transactions : [];
+    
     return safeTransactions.filter(transaction => {
       const transactionDate = new Date(transaction.date);
       
@@ -119,7 +128,6 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
   };
 
   // Calculate financial summary
-  const safeTransactions = Array.isArray(transactions) ? transactions : [];
   const filteredTransactions = getFilteredTransactions();
   
   const totalRevenues = filteredTransactions

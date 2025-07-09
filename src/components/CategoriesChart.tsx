@@ -1,3 +1,4 @@
+
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Transaction, Category } from '@/types/organizze';
@@ -17,35 +18,50 @@ export function CategoriesChart({ transactions, categories, type }: CategoriesCh
     }).format(Math.abs(amount) / 100);
   };
 
+  const getCategoryHierarchy = (categoryId: number) => {
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return 'Categoria não encontrada';
+    
+    // If it has a parent, get the parent category
+    if (category.parent_id) {
+      const parentCategory = categories.find(c => c.id === category.parent_id);
+      if (parentCategory) {
+        return `${parentCategory.name} > ${category.name}`;
+      }
+    }
+    
+    return category.name;
+  };
+
   // Filter transactions by type (expenses are negative, revenues are positive)
-  const filteredTransactions = (transactions || []).filter(transaction => 
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  const filteredTransactions = safeTransactions.filter(transaction => 
     type === 'expenses' ? transaction.amount_cents < 0 : transaction.amount_cents > 0
   );
 
-  // Group transactions by category
-  const categoryData = (categories || []).reduce((acc, category) => {
-    const categoryTransactions = filteredTransactions.filter(t => t.category_id === category.id);
-    const totalAmount = categoryTransactions.reduce((sum, t) => sum + Math.abs(t.amount_cents), 0);
+  // Group transactions by category hierarchy
+  const categoryData = new Map();
+  
+  filteredTransactions.forEach(transaction => {
+    const categoryHierarchy = getCategoryHierarchy(transaction.category_id);
+    const category = categories.find(c => c.id === transaction.category_id);
     
-    if (totalAmount > 0) {
-      acc.push({
-        name: category.name,
-        value: totalAmount,
-        color: category.color || '#8B5CF6',
-        transactions: categoryTransactions.length
+    if (!categoryData.has(categoryHierarchy)) {
+      categoryData.set(categoryHierarchy, {
+        name: categoryHierarchy,
+        value: 0,
+        color: category?.color || '#8B5CF6',
+        transactions: 0
       });
     }
     
-    return acc;
-  }, [] as Array<{
-    name: string;
-    value: number;
-    color: string;
-    transactions: number;
-  }>);
+    const existing = categoryData.get(categoryHierarchy);
+    existing.value += Math.abs(transaction.amount_cents);
+    existing.transactions += 1;
+  });
 
-  // Sort by value and get top categories
-  const sortedData = categoryData
+  // Convert to array and sort by value
+  const sortedData = Array.from(categoryData.values())
     .sort((a, b) => b.value - a.value)
     .slice(0, 8); // Show top 8 categories
 
@@ -59,7 +75,7 @@ export function CategoriesChart({ transactions, categories, type }: CategoriesCh
 
   const chartData = sortedData.map((item, index) => ({
     ...item,
-    color: item.color.startsWith('#') ? item.color : colors[index % colors.length],
+    color: item.color && item.color.startsWith('#') ? item.color : colors[index % colors.length],
     percentage: ((item.value / totalAmount) * 100).toFixed(1)
   }));
 

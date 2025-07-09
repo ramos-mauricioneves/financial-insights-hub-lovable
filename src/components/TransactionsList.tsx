@@ -1,3 +1,4 @@
+
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,9 +33,19 @@ export function TransactionsList({
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const getCategoryName = (categoryId: number) => {
+  const getCategoryHierarchy = (categoryId: number) => {
     const category = categories.find(c => c.id === categoryId);
-    return category?.name || 'Categoria não encontrada';
+    if (!category) return 'Categoria não encontrada';
+    
+    // If it has a parent, get the parent category
+    if (category.parent_id) {
+      const parentCategory = categories.find(c => c.id === category.parent_id);
+      if (parentCategory) {
+        return `${parentCategory.name} > ${category.name}`;
+      }
+    }
+    
+    return category.name;
   };
 
   const getAccountName = (accountId: number | null) => {
@@ -47,17 +58,19 @@ export function TransactionsList({
     return transaction.amount_cents > 0;
   };
 
-  const filteredTransactions = (transactions || []).filter(transaction => {
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+
+  const filteredTransactions = safeTransactions.filter(transaction => {
     if (filter === 'revenues') return isRevenue(transaction);
     if (filter === 'expenses') return !isRevenue(transaction);
     return true;
   });
 
-  const totalRevenues = (transactions || [])
+  const totalRevenues = safeTransactions
     .filter(t => isRevenue(t))
     .reduce((sum, t) => sum + t.amount_cents, 0);
 
-  const totalExpenses = (transactions || [])
+  const totalExpenses = safeTransactions
     .filter(t => !isRevenue(t))
     .reduce((sum, t) => sum + Math.abs(t.amount_cents), 0);
 
@@ -67,7 +80,7 @@ export function TransactionsList({
         <h3 className="text-lg font-semibold text-foreground">Movimentações</h3>
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="bg-muted text-muted-foreground">
-            {(transactions || []).length} movimentação{(transactions || []).length !== 1 ? 'ões' : ''}
+            {safeTransactions.length} movimentação{safeTransactions.length !== 1 ? 'ões' : ''}
           </Badge>
         </div>
       </div>
@@ -83,10 +96,10 @@ export function TransactionsList({
           Todas
         </Button>
         <Button
-          variant={filter === 'revenues' ? 'success' : 'outline'}
+          variant={filter === 'revenues' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setFilter('revenues')}
-          className="text-xs"
+          className="text-xs bg-success hover:bg-success/90"
         >
           <ArrowUpRight className="w-3 h-3 mr-1" />
           Receitas
@@ -188,7 +201,7 @@ export function TransactionsList({
                     </div>
                     
                     <span className="truncate">
-                      {getCategoryName(transaction.category_id)}
+                      {getCategoryHierarchy(transaction.category_id)}
                     </span>
                   </div>
                   

@@ -1,3 +1,4 @@
+
 // Types for Organizze API
 
 export interface OrganizzeCredentials {
@@ -30,6 +31,7 @@ export interface Category {
   parent_id: number | null;
   is_default: boolean;
   type: 'expense' | 'revenue';
+  subcategories?: Category[];
 }
 
 export interface CreditCard {
