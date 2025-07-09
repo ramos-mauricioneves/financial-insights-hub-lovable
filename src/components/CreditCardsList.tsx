@@ -49,7 +49,7 @@ export function CreditCardsList({ creditCards, onCreditCardSelect, selectedPerio
           <div className="p-2 rounded-lg bg-primary/10">
             <CreditCardIcon className="w-4 h-4 text-primary" />
           </div>
-          <div>
+          <div className="flex-1">
             <div className="flex items-center gap-2">
               <h4 className="font-medium text-foreground">{card.name}</h4>
               {card.default && (
@@ -66,6 +66,12 @@ export function CreditCardsList({ creditCards, onCreditCardSelect, selectedPerio
             <p className="text-sm text-muted-foreground">
               Limite: {formatCurrency(card.limit)}
             </p>
+            {/* Show current invoice balance */}
+            {card.current_balance_cents !== undefined && (
+              <p className="text-sm font-medium text-foreground">
+                Fatura Atual: {formatCurrency(card.current_balance_cents)}
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
               Fechamento: dia {card.closing_day} • Vencimento: dia {card.due_day}
             </p>

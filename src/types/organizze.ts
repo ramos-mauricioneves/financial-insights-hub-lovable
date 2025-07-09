@@ -1,4 +1,3 @@
-
 // Types for Organizze API
 
 export interface OrganizzeCredentials {
@@ -22,6 +21,7 @@ export interface Account {
   updated_at: string;
   default: boolean;
   type: 'checking' | 'savings' | 'other';
+  balance_cents?: number;
 }
 
 export interface Category {
@@ -45,6 +45,7 @@ export interface CreditCard {
   limit: number;
   closing_day: number;
   due_day: number;
+  current_balance_cents?: number;
 }
 
 export interface Transaction {

@@ -13,6 +13,14 @@ interface AccountsListProps {
 
 export function AccountsList({ accounts, onAccountSelect, selectedPeriod }: AccountsListProps) {
   const [showArchived, setShowArchived] = useState(false);
+  
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(amount / 100);
+  };
+
   const getAccountIcon = (type: Account['type']) => {
     switch (type) {
       case 'checking':
@@ -63,7 +71,7 @@ export function AccountsList({ accounts, onAccountSelect, selectedPeriod }: Acco
           <div className="p-2 rounded-lg bg-primary/10">
             <Icon className="w-4 h-4 text-primary" />
           </div>
-          <div>
+          <div className="flex-1">
             <div className="flex items-center gap-2">
               <h4 className="font-medium text-foreground">{account.name}</h4>
               {account.default && (
@@ -80,6 +88,12 @@ export function AccountsList({ accounts, onAccountSelect, selectedPeriod }: Acco
             <p className="text-sm text-muted-foreground">
               {getAccountTypeLabel(account.type)}
             </p>
+            {/* Show account balance */}
+            {account.balance_cents !== undefined && (
+              <p className="text-sm font-medium text-foreground">
+                Saldo: {formatCurrency(account.balance_cents)}
+              </p>
+            )}
             {account.description && (
               <p className="text-xs text-muted-foreground mt-1">
                 {account.description}

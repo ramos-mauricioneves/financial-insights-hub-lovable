@@ -42,7 +42,31 @@ class OrganizzeAPI {
 
   // Account methods
   async getAccounts(): Promise<Account[]> {
-    return this.makeRequest<Account[]>('/accounts');
+    const accounts = await this.makeRequest<Account[]>('/accounts');
+    
+    // For each account, try to get the current balance
+    const accountsWithBalance = await Promise.all(
+      accounts.map(async (account) => {
+        try {
+          // Get recent transactions to calculate balance
+          const recentTransactions = await this.getTransactions({
+            accountId: account.id,
+            startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Last 30 days
+          });
+          
+          const balance = recentTransactions
+            .filter(t => t.account_id === account.id)
+            .reduce((sum, t) => sum + t.amount_cents, 0);
+          
+          return { ...account, balance_cents: balance };
+        } catch (error) {
+          console.warn(`Could not fetch balance for account ${account.id}:`, error);
+          return account;
+        }
+      })
+    );
+    
+    return accountsWithBalance;
   }
 
   async getAccount(accountId: number): Promise<Account> {
@@ -67,7 +91,32 @@ class OrganizzeAPI {
 
   // Credit Card methods
   async getCreditCards(): Promise<CreditCard[]> {
-    return this.makeRequest<CreditCard[]>('/credit_cards');
+    const cards = await this.makeRequest<CreditCard[]>('/credit_cards');
+    
+    // For each card, try to get current invoice balance
+    const cardsWithBalance = await Promise.all(
+      cards.map(async (card) => {
+        try {
+          const currentDate = new Date();
+          const invoices = await this.getCreditCardInvoices(
+            card.id,
+            new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString().split('T')[0],
+            new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).toISOString().split('T')[0]
+          );
+          
+          const currentBalance = invoices.length > 0 
+            ? invoices[0].balance_cents || 0 
+            : 0;
+          
+          return { ...card, current_balance_cents: currentBalance };
+        } catch (error) {
+          console.warn(`Could not fetch balance for credit card ${card.id}:`, error);
+          return card;
+        }
+      })
+    );
+    
+    return cardsWithBalance;
   }
 
   async getCreditCard(cardId: number): Promise<CreditCard> {
