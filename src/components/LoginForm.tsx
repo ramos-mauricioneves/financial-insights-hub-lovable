@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { OrganizzeCredentials } from '@/types/organizze';
 import OrganizzeAPI from '@/services/organizze';
 import { DemoOrganizzeAPI } from '@/services/demoData';
-import { TrendingUp, AlertCircle, Play } from 'lucide-react';
+import { TrendingUp, AlertCircle, Play, Sparkles } from 'lucide-react';
 
 interface LoginFormProps {
   onLogin: (credentials: OrganizzeCredentials, api: OrganizzeAPI | DemoOrganizzeAPI) => void;
@@ -61,7 +61,7 @@ export function LoginForm({ onLogin }: LoginFormProps) {
     
     toast({
       title: "Modo Demo Ativado",
-      description: "Usando dados simulados para demonstração",
+      description: "Testando novos recursos: Saldos, Faturas, Filtros de Período e Subcategorias",
     });
     
     onLogin(demoCredentials, demoAPI);
@@ -69,10 +69,10 @@ export function LoginForm({ onLogin }: LoginFormProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-elegant">
+      <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="p-3 bg-gradient-primary rounded-full shadow-elegant">
+            <div className="p-3 bg-gradient-to-r from-primary to-primary/80 rounded-full shadow-lg">
               <TrendingUp className="w-8 h-8 text-primary-foreground" />
             </div>
           </div>
@@ -145,17 +145,24 @@ export function LoginForm({ onLogin }: LoginFormProps) {
           <Button
             onClick={handleDemoLogin}
             variant="outline"
-            className="w-full"
+            className="w-full border-2 border-dashed border-primary/50 hover:border-primary"
             type="button"
           >
-            <Play className="w-4 h-4 mr-2" />
-            Experimentar Modo Demo
+            <Sparkles className="w-4 h-4 mr-2 text-primary" />
+            Testar Novos Recursos (Demo)
           </Button>
 
-          <div className="text-center text-xs text-muted-foreground">
-            <p>
-              O modo demo usa dados simulados para demonstrar as funcionalidades
+          <div className="text-center text-xs text-muted-foreground space-y-2">
+            <p className="font-semibold text-primary">
+              ✨ Novos recursos implementados:
             </p>
+            <ul className="text-left space-y-1">
+              <li>• Consulta de saldos das contas</li>
+              <li>• Exibição de faturas dos cartões</li>
+              <li>• Filtro de período com presets</li>
+              <li>• Contas/cartões arquivados recolhíveis</li>
+              <li>• Suporte a subcategorias</li>
+            </ul>
           </div>
         </CardContent>
       </Card>

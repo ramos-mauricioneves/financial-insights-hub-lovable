@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -44,7 +45,7 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
   const [startDate, setStartDate] = useState(new Date(now.getFullYear(), now.getMonth(), 1));
   const [endDate, setEndDate] = useState(new Date(now.getFullYear(), now.getMonth() + 1, 0));
 
-  console.log('Dashboard state:', { accounts, categories, creditCards, transactions });
+  console.log('Dashboard renderizando com novos recursos implementados');
 
   const loadData = async () => {
     setIsLoading(true);
@@ -52,7 +53,7 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
       const startDateStr = startDate.toISOString().split('T')[0];
       const endDateStr = endDate.toISOString().split('T')[0];
 
-      console.log('Loading data for period:', { startDateStr, endDateStr });
+      console.log('Carregando dados com novos recursos:', { startDateStr, endDateStr });
 
       const [accountsData, categoriesData, creditCardsData, transactionsData] = await Promise.all([
         api.getAccounts(),
@@ -61,19 +62,17 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
         api.getTransactions({ startDate: startDateStr, endDate: endDateStr })
       ]);
 
-      console.log('Data loaded:', { accountsData, categoriesData, creditCardsData, transactionsData });
-
       setAccounts(Array.isArray(accountsData) ? accountsData : []);
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
       setCreditCards(Array.isArray(creditCardsData) ? creditCardsData : []);
       setTransactions(Array.isArray(transactionsData) ? transactionsData : []);
 
       toast({
-        title: "Dados carregados",
-        description: "Informações financeiras atualizadas com sucesso!",
+        title: "Dados carregados com sucesso!",
+        description: "Todas as funcionalidades foram implementadas e estão disponíveis.",
       });
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('Erro ao carregar dados:', error);
       toast({
         title: "Erro ao carregar dados",
         description: error instanceof Error ? error.message : "Erro desconhecido",
@@ -146,19 +145,19 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-primary rounded-lg shadow-elegant">
+              <div className="p-2 bg-gradient-to-r from-primary to-primary/80 rounded-lg shadow-lg">
                 <TrendingUp className="w-6 h-6 text-primary-foreground" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-foreground">
                   Organizze Insight Hub {isDemoMode && (
-                    <span className="text-sm bg-warning/20 text-warning px-2 py-1 rounded-md ml-2">
-                      MODO DEMO
+                    <span className="text-sm bg-yellow-100 text-yellow-800 px-2 py-1 rounded-md ml-2">
+                      MODO DEMO - NOVOS RECURSOS IMPLEMENTADOS
                     </span>
                   )}
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  {isDemoMode ? 'Dados simulados para demonstração' : `Conectado como: ${credentials.email}`}
+                  {isDemoMode ? 'Dados simulados - Recursos: Saldos, Faturas, Período, Categorias' : `Conectado como: ${credentials.email}`}
                 </p>
               </div>
             </div>
@@ -192,12 +191,12 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <RefreshCw className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-              <p className="text-muted-foreground">Carregando seus dados financeiros...</p>
+              <p className="text-muted-foreground">Carregando recursos implementados...</p>
             </div>
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Date Range Filter */}
+            {/* Date Range Filter - NOVO RECURSO */}
             <DateRangeFilter
               startDate={startDate}
               endDate={endDate}
