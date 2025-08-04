@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,9 +9,13 @@ import { TransactionsList } from './TransactionsList';
 import { CategoriesChart } from './CategoriesChart';
 import { MonthlyChart } from './MonthlyChart';
 import { DateRangeFilter } from './DateRangeFilter';
+import { InsightsDashboard } from './InsightsDashboard';
+import { TrendsChart } from './TrendsChart';
 import OrganizzeAPI from '@/services/organizze';
 import { DemoOrganizzeAPI } from '@/services/demoData';
+import { FinancialAnalysisService } from '@/services/financialAnalysis';
 import { OrganizzeCredentials, Account, Category, CreditCard, Transaction } from '@/types/organizze';
+import { FinancialInsight, FinancialKPI, TrendAnalysis } from '@/types/insights';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -22,7 +25,9 @@ import {
   BarChart,
   PieChart,
   Calendar,
-  Wallet
+  Wallet,
+  Brain,
+  Activity
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -40,12 +45,17 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   
+  // New states for insights
+  const [insights, setInsights] = useState<FinancialInsight[]>([]);
+  const [kpis, setKPIs] = useState<FinancialKPI[]>([]);
+  const [trends, setTrends] = useState<TrendAnalysis[]>([]);
+  
   // Date range state - initialize with current month
   const now = new Date();
   const [startDate, setStartDate] = useState(new Date(now.getFullYear(), now.getMonth(), 1));
   const [endDate, setEndDate] = useState(new Date(now.getFullYear(), now.getMonth() + 1, 0));
 
-  console.log('Dashboard renderizando com novos recursos implementados');
+  console.log('Dashboard renderizando com insights avançados implementados');
 
   const loadData = async () => {
     setIsLoading(true);
@@ -53,7 +63,7 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
       const startDateStr = startDate.toISOString().split('T')[0];
       const endDateStr = endDate.toISOString().split('T')[0];
 
-      console.log('Carregando dados com novos recursos:', { startDateStr, endDateStr });
+      console.log('Carregando dados com insights:', { startDateStr, endDateStr });
 
       const [accountsData, categoriesData, creditCardsData, transactionsData] = await Promise.all([
         api.getAccounts(),
@@ -67,9 +77,43 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
       setCreditCards(Array.isArray(creditCardsData) ? creditCardsData : []);
       setTransactions(Array.isArray(transactionsData) ? transactionsData : []);
 
+      // Load previous period for comparison
+      const previousStart = new Date(startDate);
+      previousStart.setMonth(previousStart.getMonth() - 1);
+      const previousEnd = new Date(endDate);
+      previousEnd.setMonth(previousEnd.getMonth() - 1);
+
+      let previousTransactions: Transaction[] = [];
+      try {
+        const previousData = await api.getTransactions({ 
+          startDate: previousStart.toISOString().split('T')[0], 
+          endDate: previousEnd.toISOString().split('T')[0] 
+        });
+        previousTransactions = Array.isArray(previousData) ? previousData : [];
+      } catch (error) {
+        console.warn('Could not load previous period data:', error);
+      }
+
+      // Generate insights and analysis
+      const currentTransactions = Array.isArray(transactionsData) ? transactionsData : [];
+      const currentCategories = Array.isArray(categoriesData) ? categoriesData : [];
+      
+      const generatedInsights = FinancialAnalysisService.generateInsights(
+        currentTransactions,
+        currentCategories,
+        previousTransactions
+      );
+      
+      const calculatedKPIs = FinancialAnalysisService.calculateKPIs(currentTransactions);
+      const generatedTrends = FinancialAnalysisService.generateTrendAnalysis(currentTransactions, currentCategories);
+
+      setInsights(generatedInsights);
+      setKPIs(calculatedKPIs);
+      setTrends(generatedTrends);
+
       toast({
-        title: "Dados carregados com sucesso!",
-        description: "Todas as funcionalidades foram implementadas e estão disponíveis.",
+        title: "Dados carregados com insights avançados!",
+        description: "Dashboard aprimorado com análises financeiras inteligentes.",
       });
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -152,12 +196,12 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
                 <h1 className="text-xl font-bold text-foreground">
                   Organizze Insight Hub {isDemoMode && (
                     <span className="text-sm bg-yellow-100 text-yellow-800 px-2 py-1 rounded-md ml-2">
-                      MODO DEMO - NOVOS RECURSOS IMPLEMENTADOS
+                      MODO DEMO - INSIGHTS AVANÇADOS
                     </span>
                   )}
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  {isDemoMode ? 'Dados simulados - Recursos: Saldos, Faturas, Período, Categorias' : `Conectado como: ${credentials.email}`}
+                  {isDemoMode ? 'Dashboard com insights financeiros inteligentes' : `Conectado como: ${credentials.email}`}
                 </p>
               </div>
             </div>
@@ -191,12 +235,12 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <RefreshCw className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-              <p className="text-muted-foreground">Carregando recursos implementados...</p>
+              <p className="text-muted-foreground">Carregando insights financeiros...</p>
             </div>
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Date Range Filter - NOVO RECURSO */}
+            {/* Date Range Filter */}
             <DateRangeFilter
               startDate={startDate}
               endDate={endDate}
@@ -226,11 +270,15 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
             </div>
 
             {/* Main Content Tabs */}
-            <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-5 bg-muted/50">
-                <TabsTrigger value="overview" className="flex items-center gap-2">
-                  <BarChart className="w-4 h-4" />
-                  Visão Geral
+            <Tabs defaultValue="insights" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-6 bg-muted/50">
+                <TabsTrigger value="insights" className="flex items-center gap-2">
+                  <Brain className="w-4 h-4" />
+                  Insights
+                </TabsTrigger>
+                <TabsTrigger value="trends" className="flex items-center gap-2">
+                  <Activity className="w-4 h-4" />
+                  Tendências
                 </TabsTrigger>
                 <TabsTrigger value="accounts" className="flex items-center gap-2">
                   <Wallet className="w-4 h-4" />
@@ -245,23 +293,17 @@ export function Dashboard({ credentials, api, onLogout, isDemoMode = false }: Da
                   Categorias
                 </TabsTrigger>
                 <TabsTrigger value="monthly" className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />
+                  <BarChart className="w-4 h-4" />
                   Mensal
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="overview" className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <AccountsList 
-                    accounts={accounts} 
-                    selectedPeriod={{ startDate, endDate }}
-                  />
-                  <CreditCardsList 
-                    creditCards={creditCards} 
-                    selectedPeriod={{ startDate, endDate }}
-                  />
-                </div>
-                <MonthlyChart transactions={filteredTransactions} />
+              <TabsContent value="insights">
+                <InsightsDashboard insights={insights} kpis={kpis} />
+              </TabsContent>
+
+              <TabsContent value="trends">
+                <TrendsChart trends={trends} />
               </TabsContent>
 
               <TabsContent value="accounts" className="space-y-6">
